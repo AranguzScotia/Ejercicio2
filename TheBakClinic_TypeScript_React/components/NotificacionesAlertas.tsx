@@ -13,7 +13,7 @@ import {
   marcarNotificacionComoLeida,
   NotificacionAlerta as NotificacionApi,
   NotificacionesListResponse
-} from '../services/api';
+} from '../services/notificacionService'; // Cambiado a notificacionService
 
 // interface NotificacionesAlertasProps {
 //   onNavigate: (screen: string, data?: any) => void; // Si se necesita para navegar a entidad_relacionada

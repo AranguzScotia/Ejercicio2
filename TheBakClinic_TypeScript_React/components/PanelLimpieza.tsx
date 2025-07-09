@@ -15,7 +15,7 @@ import {
   actualizarEstadoQuirofano,
   EstadoQuirofano as EstadoQuirofanoApi,
   EstadoQuirofanoUpdatePayload
-} from '../services/api';
+} from '../services/limpiezaService'; // Cambiado a limpiezaService
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 

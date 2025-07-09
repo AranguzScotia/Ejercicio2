@@ -19,11 +19,12 @@ import {
   Cirugia as CirugiaApi,
   CirugiaCreatePayload,
   CirugiaListParams,
-} from '../services/api';
+} from '../services/cirugiaService';
+import { useNavigate } from 'react-router-dom';
 
-interface AgendaQuirurgicaProps {
-  onNavigate: (screen: string, data?: any) => void;
-}
+// interface AgendaQuirurgicaProps {
+//   onNavigate: (screen: string, data?: any) => void; // Ya no se usa
+// }
 
 // Estado para el formulario de nueva cirugía
 const initialCirugiaFormState: Partial<CirugiaCreatePayload> = {
@@ -37,7 +38,8 @@ const initialCirugiaFormState: Partial<CirugiaCreatePayload> = {
   notas_preoperatorias: '',
 };
 
-export function AgendaQuirurgica({ onNavigate }: AgendaQuirurgicaProps) {
+export function AgendaQuirurgica(/*{ onNavigate }: AgendaQuirurgicaProps*/) {
+  const navigate = useNavigate(); // Hook para navegación
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'semana' | 'mes'>('semana');
 
@@ -275,7 +277,8 @@ export function AgendaQuirurgica({ onNavigate }: AgendaQuirurgicaProps) {
                     <div
                       key={cirugia.id_cirugia}
                       className={`p-1.5 rounded-md border text-xs cursor-pointer hover:shadow-md transition-shadow ${getEstadoBadgeStyle(cirugia.estado_cirugia)}`}
-                      onClick={() => onNavigate('detalle-cirugia', cirugia)} // Revisar qué data necesita detalle-cirugia
+                      // onClick={() => onNavigate('detalle-cirugia', cirugia)} // TODO: Cambiar a navigate
+                      onClick={() => navigate(`/cirugias/${cirugia.id_cirugia}`)} // Asumiendo una ruta de detalle
                       title={`Paciente ID: ${cirugia.id_paciente}, Médico ID: ${cirugia.id_medico_principal}`}
                     >
                       <div className="font-semibold truncate">{cirugia.tipo_cirugia}</div>
