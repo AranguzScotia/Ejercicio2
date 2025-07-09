@@ -1,13 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Calendar, Users, AlertTriangle, FileText, Clock, Activity } from 'lucide-react';
+import { Calendar, Users, AlertTriangle, /*FileText,*/ Clock, Activity } from 'lucide-react'; // FileText no se usa
+import { useNavigate } from 'react-router-dom';
 
-interface DashboardProps {
-  onNavigate: (screen: string) => void;
-}
+// interface DashboardProps {
+  // onNavigate: (screen: string) => void; // Ya no se necesita
+// }
 
-export function Dashboard({ onNavigate }: DashboardProps) {
+export function Dashboard(/*{ onNavigate }: DashboardProps*/) {
+  const navigate = useNavigate();
   const today = new Date().toLocaleDateString('es-CL', {
     weekday: 'long',
     year: 'numeric',
@@ -39,11 +41,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     }
   ];
 
+  // Rutas actualizadas según App.tsx
   const quickActions = [
-    { title: 'Agenda Quirúrgica', desc: 'Ver y gestionar cirugías', action: () => onNavigate('agenda') },
-    { title: 'Pacientes', desc: 'Registrar nuevo paciente', action: () => onNavigate('paciente') },
-    { title: 'Reportes', desc: 'Ver KPIs y estadísticas', action: () => onNavigate('reportes') },
-    { title: 'Notificaciones', desc: 'Revisar alertas', action: () => onNavigate('notificaciones') }
+    { title: 'Agenda Quirúrgica', desc: 'Ver y gestionar cirugías', path: '/cirugias' },
+    { title: 'Ingresar Paciente', desc: 'Registrar nuevo paciente', path: '/pacientes/nuevo' },
+    { title: 'Reportes', desc: 'Ver KPIs y estadísticas', path: '/reportes' },
+    { title: 'Notificaciones', desc: 'Revisar alertas', path: '/notificaciones' }
   ];
 
   const recentActivities = [
@@ -92,7 +95,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   key={index}
                   variant="outline"
                   className="h-auto p-4 flex flex-col items-start text-left"
-                  onClick={action.action}
+                  onClick={() => navigate(action.path)} // Usar navigate
                 >
                   <div className="font-medium">{action.title}</div>
                   <div className="text-sm text-muted-foreground">{action.desc}</div>

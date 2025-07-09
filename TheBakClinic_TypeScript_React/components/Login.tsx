@@ -1,22 +1,25 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Importar useNavigate
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert'; // Para mostrar errores
-import { Loader2 } from 'lucide-react'; // Para el indicador de carga
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Loader2, Mail } from 'lucide-react'; // Cambiar icono a Mail
 import clinicLogo from 'figma:asset/edbed43c3db39494f85e7ae6f92ba61a21ce649c.png';
-import { iniciarSesion } from '../services/api'; // Importar la función de la API
+// Actualizar importación para usar authService
+import { iniciarSesion, LoginPayload } from '../services/authService';
 
 interface LoginProps {
-  onLoginSuccess: () => void; // Cambiado para mayor claridad
+  onLoginSuccess: () => void; // Esta prop es para que App.tsx actualice su estado y re-renderice
 }
 
 export function Login({ onLoginSuccess }: LoginProps) {
-  const [rut, setRut] = useState('');
+  const [email, setEmail] = useState(''); // Cambiado de rut a email
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate(); // Hook para navegación
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,13 +27,13 @@ export function Login({ onLoginSuccess }: LoginProps) {
     setIsLoading(true);
 
     try {
-      // Validar formato de RUT aquí si es necesario antes de enviar
-      // Ejemplo básico: if (!/^[0-9]{1,2}\.?[0-9]{3}\.?[0-9]{3}-?[0-9kK]{1}$/.test(rut)) { ... }
+      const payload: LoginPayload = { email: email, contrasena: password };
+      await iniciarSesion(payload);
 
-      await iniciarSesion({ rut: rut, contrasena: password });
-      onLoginSuccess(); // Llama a la función de App.tsx para cambiar de pantalla
+      onLoginSuccess(); // Notificar a App.tsx para que actualice el estado de autenticación global
+      navigate('/dashboard'); // Redirigir a dashboard después del login exitoso
+
     } catch (err: any) {
-      // Mejorar el manejo de errores según la respuesta de la API
       if (err.response && err.response.data && err.response.data.detail) {
         setError(err.response.data.detail);
       } else if (err.message) {
@@ -67,15 +70,20 @@ export function Login({ onLoginSuccess }: LoginProps) {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="rut">RUT</Label>
-              <Input
-                id="rut"
-                placeholder="12.345.678-9"
-                value={rut}
-                onChange={(e) => setRut(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+              <Label htmlFor="email">Correo Electrónico</Label> {/* Cambiado de RUT a Email */}
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email" // Tipo de input cambiado a email
+                  placeholder="usuario@clinicabak.cl"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="pl-10" // Padding para el icono
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
@@ -91,13 +99,8 @@ export function Login({ onLoginSuccess }: LoginProps) {
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Iniciando...
-                </>
-              ) : (
-                'Iniciar sesión'
-              )}
+                <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Iniciando... </>
+              ) : ( 'Iniciar sesión' )}
             </Button>
             <div className="text-center">
               <button 

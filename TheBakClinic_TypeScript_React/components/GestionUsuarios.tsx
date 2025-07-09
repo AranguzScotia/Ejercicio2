@@ -15,10 +15,10 @@ import {
   crearUsuario,
   actualizarUsuario,
   eliminarUsuario,
-  Usuario as UsuarioApi, // Renombrar para evitar conflicto con el icono User
+  Usuario as UsuarioApi,
   UsuarioListResponse,
   UsuarioCreatePayload
-} from '../services/api';
+} from '../services/usuarioService'; // Cambiado a usuarioService
 
 // Ajustar UserFormState para que coincida con UsuarioCreatePayload para la creación
 // y con campos de UsuarioApi para la edición.

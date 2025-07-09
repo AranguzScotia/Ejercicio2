@@ -11,7 +11,7 @@ import { CalendarIcon, Download, TrendingUp, TrendingDown, Activity, Clock, User
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import clinicLogo from 'figma:asset/edbed43c3db39494f85e7ae6f92ba61a21ce649c.png';
-import { obtenerReporteGeneral, ReporteGeneralDataPublic, ConteoPorEstado } from '../services/api';
+import { obtenerReporteGeneral, ReporteGeneralData as ReporteGeneralDataPublic, ConteoPorEstado } from '../services/reporteService'; // Cambiado a reporteService
 
 // interface ReportesKPIsProps {
 //   onNavigate: (screen: string) => void; // Si se necesita

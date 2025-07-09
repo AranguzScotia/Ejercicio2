@@ -11,11 +11,13 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { CalendarIcon, Save, X, Loader2 } from 'lucide-react';
 import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { crearPaciente, PacienteCreatePayload } from '../services/api';
+// Actualizar importación para usar pacienteService
+import { crearPaciente, PacienteCreatePayload } from '../services/pacienteService';
+import { useNavigate } from 'react-router-dom'; // Importar useNavigate
 
-interface IngresoPacienteProps {
-  onNavigate: (screen: string, data?: any) => void; // Permitir pasar datos, ej. ID del paciente creado
-}
+// interface IngresoPacienteProps {
+  // onNavigate: (screen: string, data?: any) => void; // Ya no se usa
+// }
 
 // Estado del formulario local
 interface PacienteFormData {
@@ -34,10 +36,11 @@ interface PacienteFormData {
   alergias: string;
   medicamentos: string;
   observaciones: string;
-  numero_ficha: string; // Añadido para coincidir con schema, aunque opcional
+  numero_ficha: string;
 }
 
-export function IngresoPaciente({ onNavigate }: IngresoPacienteProps) {
+export function IngresoPaciente(/*{ onNavigate }: IngresoPacienteProps*/) {
+  const navigate = useNavigate(); // Hook para navegación
   const initialFormData: PacienteFormData = {
     nombre: '',
     apellido: '',
@@ -108,11 +111,10 @@ export function IngresoPaciente({ onNavigate }: IngresoPacienteProps) {
     try {
       const nuevoPaciente = await crearPaciente(payload);
       mostrarMensajeTemporal(setMensajeExito, `Paciente ${nuevoPaciente.nombre} ${nuevoPaciente.apellido} registrado exitosamente con ID: ${nuevoPaciente.id_paciente}.`);
-      // Limpiar formulario o navegar
       setFormData(initialFormData);
-      // Opcionalmente, navegar a una vista de detalle del paciente o a un listado
-      // onNavigate('detallePaciente', { pacienteId: nuevoPaciente.id_paciente });
-      // onNavigate('dashboard'); // O simplemente volver al dashboard
+      // Opcional: navegar a una lista de pacientes o al dashboard
+      // navigate('/pacientes'); // Si existiera una ruta de listado de pacientes
+      // navigate('/dashboard');
     } catch (error: any) {
       mostrarMensajeTemporal(setErrorApi, error.response?.data?.detail || error.message || 'Error al registrar paciente.');
     } finally {
@@ -125,7 +127,7 @@ export function IngresoPaciente({ onNavigate }: IngresoPacienteProps) {
       setFormData(initialFormData);
       setErrorApi(null);
       setMensajeExito(null);
-      onNavigate('dashboard'); // O a donde corresponda
+      navigate('/dashboard'); // Usar navigate para volver al dashboard o a donde corresponda
     }
   };
 
