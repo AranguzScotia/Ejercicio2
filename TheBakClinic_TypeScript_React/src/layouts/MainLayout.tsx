@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/button'; // Ajustar rutas de importación si es necesario
+import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
-import clinicLogo from 'figma:asset/edbed43c3db39494f85e7ae6f92ba61a21ce649c.png'; // Asumiendo que está accesible o mover a /public
+// clinicLogo ahora se referencia directamente desde /public
+// import clinicLogo from 'figma:asset/edbed43c3db39494f85e7ae6f92ba61a21ce649c.png';
 import {
   Home, Calendar, UserPlus, History, Sparkles, Users, BarChart3, Bell, LogOut, Menu, X, LucideIcon
 } from 'lucide-react';
@@ -66,7 +67,7 @@ export default function MainLayout({ }: MainLayoutProps) {
           <div className="p-6 border-b">
             <div className="flex items-center justify-between">
               <Link to="/dashboard" className="flex flex-col items-center w-full">
-                <img src={clinicLogo} alt="The BAK Clinic" className="h-12 w-auto object-contain mb-2" />
+                <img src="/img/clinica_logo.png" alt="The BAK Clinic" className="h-12 w-auto object-contain mb-2" /> {/* Ruta actualizada */}
                 <div className="text-center">
                   <h2 className="font-bold text-primary text-sm">Gestión de Pabellones</h2>
                   <p className="text-xs text-muted-foreground">Sistema Clínico</p>
@@ -126,8 +127,9 @@ export default function MainLayout({ }: MainLayoutProps) {
             <Menu className="w-4 h-4" />
           </Button>
           <div className="flex items-center gap-4">
-            <div className="lg:hidden"> {/* Logo solo en móvil si el sidebar está cerrado */}
-              {!sidebarOpen && <img src={clinicLogo} alt="The BAK Clinic" className="h-8 w-auto object-contain" />}
+            <div className="lg:hidden">
+              {/* Logo en header móvil, ya no depende de sidebarOpen porque el logo principal está en el sidebar */}
+              <img src="/img/clinica_logo.png" alt="The BAK Clinic" className="h-8 w-auto object-contain" />
             </div>
             <div className="hidden md:block text-right">
               <p className="font-medium">{getCurrentTitle()}</p>
