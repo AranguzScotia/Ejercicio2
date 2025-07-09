@@ -1,433 +1,252 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Input } from './ui/input';
+import { Input } from './ui/input'; // No se usa directamente, pero puede ser útil para Dialog
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Separator } from './ui/separator';
-import { Play, CheckCircle, Clock, AlertTriangle, User, MapPin, ClipboardList } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'; // Para cambiar estado
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+import { Separator } from './ui/separator'; // Si se usa
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Play, CheckCircle, Clock, AlertTriangle, Loader2, Edit3 } from 'lucide-react'; // Edit3 para editar notas
+import {
+  obtenerEstadosQuirofanos,
+  actualizarEstadoQuirofano,
+  EstadoQuirofano as EstadoQuirofanoApi,
+  EstadoQuirofanoUpdatePayload
+} from '../services/api';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-interface PanelLimpiezaProps {
-  onNavigate: (screen: string) => void;
-}
+// interface PanelLimpiezaProps {
+//   onNavigate: (screen: string) => void; // Si se necesita navegación
+// }
 
-export function PanelLimpieza({ onNavigate }: PanelLimpiezaProps) {
-  const [selectedPabellon, setSelectedPabellon] = useState<any>(null);
+// Estados de limpieza posibles que el usuario puede seleccionar
+const ESTADOS_LIMPIEZA_SELECCIONABLES = [
+  "Disponible", // Limpio y listo
+  "Limpieza Pendiente", // Sucio, necesita limpieza
+  "En Limpieza", // Limpieza en curso
+  "No Disponible", // Por mantenimiento u otra razón
+  // "Completado" se maneja internamente al pasar a Disponible. "Ocupado" se manejaría por cirugías.
+];
+
+
+export function PanelLimpieza(/*{ onNavigate }: PanelLimpiezaProps*/) {
+  const [estadosQuirofanos, setEstadosQuirofanos] = useState<EstadoQuirofanoApi[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorApi, setErrorApi] = useState<string | null>(null);
+  const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+
+  const [selectedQuirofano, setSelectedQuirofano] = useState<EstadoQuirofanoApi | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [registroForm, setRegistroForm] = useState({
-    tipoLimpieza: '',
-    horaInicio: '',
-    horaFin: '',
-    responsable: '',
-    observaciones: ''
+  const [editForm, setEditForm] = useState<{ estado_limpieza: string; notas_limpieza: string }>({
+    estado_limpieza: '',
+    notas_limpieza: ''
   });
 
-  const pabellones = [
-    {
-      id: 1,
-      nombre: 'Pabellón 1',
-      estado: 'pendiente',
-      ultimaCirugia: '10:15',
-      tipoLimpiezaRequerida: 'Desinfección Completa',
-      prioridad: 'alta',
-      tiempoEstimado: '45 min',
-      responsableAsignado: 'Equipo A'
-    },
-    {
-      id: 2,
-      nombre: 'Pabellón 2',
-      estado: 'en-proceso',
-      ultimaCirugia: '14:30',
-      tipoLimpiezaRequerida: 'Limpieza Estándar',
-      prioridad: 'media',
-      tiempoEstimado: '30 min',
-      responsableAsignado: 'María Silva',
-      horaInicio: '15:00'
-    },
-    {
-      id: 3,
-      nombre: 'Pabellón 3',
-      estado: 'completado',
-      ultimaCirugia: '08:45',
-      tipoLimpiezaRequerida: 'Limpieza Estándar',
-      prioridad: 'baja',
-      tiempoEstimado: '30 min',
-      responsableAsignado: 'Juan Pérez',
-      horaInicio: '09:30',
-      horaFin: '10:00'
-    },
-    {
-      id: 4,
-      nombre: 'Pabellón 4',
-      estado: 'disponible',
-      ultimaCirugia: '16:00',
-      tipoLimpiezaRequerida: 'Mantenimiento',
-      prioridad: 'baja',
-      tiempoEstimado: '60 min',
-      responsableAsignado: 'Equipo B',
-      horaInicio: '17:00',
-      horaFin: '18:00'
-    },
-    {
-      id: 5,
-      nombre: 'Pabellón 5',
-      estado: 'pendiente',
-      ultimaCirugia: '12:20',
-      tipoLimpiezaRequerida: 'Desinfección Completa',
-      prioridad: 'alta',
-      tiempoEstimado: '45 min',
-      responsableAsignado: 'Ana Martínez'
+  const fetchEstados = useCallback(async () => {
+    setIsLoading(true);
+    setErrorApi(null);
+    try {
+      const response = await obtenerEstadosQuirofanos();
+      setEstadosQuirofanos(response.quirofanos || []);
+    } catch (error: any) {
+      setErrorApi(error.response?.data?.detail || error.message || 'Error al cargar estados de limpieza.');
+      setEstadosQuirofanos([]);
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  }, []);
 
-  const historialLimpieza = [
-    {
-      id: 1,
-      pabellon: 'Pabellón 3',
-      fecha: '2025-06-25',
-      tipo: 'Limpieza Estándar',
-      responsable: 'Juan Pérez',
-      inicio: '09:30',
-      fin: '10:00',
-      observaciones: 'Limpieza completada sin novedad'
-    },
-    {
-      id: 2,
-      pabellon: 'Pabellón 4',
-      fecha: '2025-06-25',
-      tipo: 'Mantenimiento',
-      responsable: 'Equipo B',
-      inicio: '17:00',
-      fin: '18:00',
-      observaciones: 'Revisión y mantenimiento de equipos'
-    }
-  ];
+  useEffect(() => {
+    fetchEstados();
+  }, [fetchEstados]);
 
-  const getEstadoInfo = (estado: string) => {
-    switch (estado) {
-      case 'pendiente':
-        return { color: 'bg-red-100 text-red-800 border-red-300', text: 'Pendiente', icon: AlertTriangle };
-      case 'en-proceso':
-        return { color: 'bg-yellow-100 text-yellow-800 border-yellow-300', text: 'En Proceso', icon: Clock };
-      case 'completado':
-        return { color: 'bg-green-100 text-green-800 border-green-300', text: 'Completado', icon: CheckCircle };
+  const mostrarMensajeTemporal = (setter: React.Dispatch<React.SetStateAction<string | null>>, mensaje: string) => {
+    setter(mensaje);
+    setTimeout(() => setter(null), 4000);
+  };
+
+  const getEstadoVisualInfo = (estado: string) => {
+    switch (estado?.toLowerCase()) {
+      case 'limpieza pendiente':
+      case 'pendiente': // alias del mock
+        return { color: 'bg-red-100 text-red-800 border-red-300', text: 'Limpieza Pendiente', icon: AlertTriangle };
+      case 'en limpieza':
+      case 'en-proceso': // alias del mock
+        return { color: 'bg-yellow-100 text-yellow-800 border-yellow-300', text: 'En Limpieza', icon: Clock };
       case 'disponible':
-        return { color: 'bg-blue-100 text-blue-800 border-blue-300', text: 'Disponible', icon: CheckCircle };
+      case 'limpio': // alias
+      case 'completado': // alias del mock
+        return { color: 'bg-green-100 text-green-800 border-green-300', text: 'Disponible', icon: CheckCircle };
+      case 'no disponible':
+        return { color: 'bg-gray-400 text-white border-gray-500', text: 'No Disponible', icon: AlertTriangle };
+      case 'ocupado': // Este estado vendría de la agenda, no directamente de limpieza
+        return { color: 'bg-purple-100 text-purple-800 border-purple-300', text: 'Ocupado', icon: Clock };
       default:
-        return { color: 'bg-gray-100 text-gray-800 border-gray-300', text: estado, icon: Clock };
+        return { color: 'bg-gray-100 text-gray-800 border-gray-300', text: estado || 'Desconocido', icon: Clock };
     }
   };
 
-  const getPrioridadColor = (prioridad: string) => {
-    switch (prioridad) {
-      case 'alta': return 'bg-red-500';
-      case 'media': return 'bg-yellow-500';
-      case 'baja': return 'bg-green-500';
-      default: return 'bg-gray-500';
+  // Simulación de prioridad basada en estado (ya que no viene del backend)
+  const getPrioridadInfo = (estado: string) => {
+    switch (estado?.toLowerCase()) {
+      case 'limpieza pendiente': return { text: 'Alta', color: 'bg-red-500' };
+      case 'en limpieza': return { text: 'Media', color: 'bg-yellow-500' };
+      default: return { text: 'N/A', color: 'bg-gray-300' };
     }
   };
 
-  const iniciarLimpieza = (pabellon: any) => {
-    setSelectedPabellon(pabellon);
-    setRegistroForm({
-      tipoLimpieza: pabellon.tipoLimpiezaRequerida,
-      horaInicio: new Date().toTimeString().slice(0, 5),
-      horaFin: '',
-      responsable: pabellon.responsableAsignado,
-      observaciones: ''
+
+  const handleAbrirDialogEdicion = (quirofano: EstadoQuirofanoApi) => {
+    setSelectedQuirofano(quirofano);
+    setEditForm({
+      estado_limpieza: quirofano.estado_limpieza,
+      notas_limpieza: quirofano.notas_limpieza || ''
     });
     setIsDialogOpen(true);
+    setErrorApi(null);
+    setMensajeExito(null);
   };
 
-  const completarLimpieza = () => {
-    alert(`Limpieza de ${selectedPabellon?.nombre} registrada exitosamente`);
-    setIsDialogOpen(false);
-    setSelectedPabellon(null);
+  const handleGuardarCambiosEstado = async () => {
+    if (!selectedQuirofano) return;
+
+    setIsLoading(true);
+    setErrorApi(null);
+    const payload: EstadoQuirofanoUpdatePayload = {
+      estado_limpieza: editForm.estado_limpieza,
+      notas_limpieza: editForm.notas_limpieza,
+    };
+    // Si el estado es "Disponible", la API se encarga de `ultima_limpieza_realizada_dt`
+    // Si se pasa de "Ocupado" a "Limpieza Pendiente", se podría actualizar `ultima_vez_ocupado_hasta`
+    // Esta lógica podría estar en el backend o requerir más info aquí.
+
+    try {
+      await actualizarEstadoQuirofano(selectedQuirofano.nombre_quirofano, payload);
+      mostrarMensajeTemporal(setMensajeExito, `Estado de ${selectedQuirofano.nombre_quirofano} actualizado.`);
+      setIsDialogOpen(false);
+      fetchEstados(); // Recargar
+    } catch (error: any) {
+      mostrarMensajeTemporal(setErrorApi, error.response?.data?.detail || error.message || 'Error al actualizar estado.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const tiposLimpieza = [
-    'Limpieza Estándar',
-    'Desinfección Completa',
-    'Limpieza Terminal',
-    'Mantenimiento',
-    'Limpieza de Emergencia'
-  ];
+  const resumen = estadosQuirofanos.reduce((acc, q) => {
+    const estadoKey = q.estado_limpieza?.toLowerCase().replace(' ', '') || 'desconocido';
+    acc[estadoKey] = (acc[estadoKey] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
-  const personal = [
-    'María Silva',
-    'Juan Pérez',
-    'Ana Martínez',
-    'Carlos López',
-    'Equipo A',
-    'Equipo B'
-  ];
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h1>Panel de Limpieza</h1>
-          <p className="text-muted-foreground">Gestión y control de aseo de pabellones</p>
-        </div>
-        
+        <div> <h1>Panel de Limpieza</h1> <p className="text-muted-foreground">Gestión y control de aseo de pabellones</p> </div>
         <div className="flex gap-2">
-          <Badge variant="outline" className="text-red-600 border-red-300">
-            Pendiente: {pabellones.filter(p => p.estado === 'pendiente').length}
-          </Badge>
-          <Badge variant="outline" className="text-yellow-600 border-yellow-300">
-            En Proceso: {pabellones.filter(p => p.estado === 'en-proceso').length}
-          </Badge>
+          {/* Podríamos mostrar contadores dinámicos aquí */}
+           <Badge variant="outline" className="text-red-600 border-red-300">Pendientes: {resumen['limpiezapendiente'] || 0}</Badge>
+           <Badge variant="outline" className="text-yellow-600 border-yellow-300">En Proceso: {resumen['enlimpieza'] || 0}</Badge>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Lista de Pabellones */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Estado de Pabellones</CardTitle>
-              <CardDescription>Pabellones pendientes y en proceso de limpieza</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {pabellones.map((pabellon) => {
-                  const estadoInfo = getEstadoInfo(pabellon.estado);
-                  const EstadoIcon = estadoInfo.icon;
-                  
-                  return (
-                    <div key={pabellon.id} className="border rounded-lg p-4 space-y-3">
-                      {/* Header del pabellón */}
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${getPrioridadColor(pabellon.prioridad)}`}></div>
-                          <div>
-                            <h3 className="font-medium">{pabellon.nombre}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              Última cirugía: {pabellon.ultimaCirugia}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <Badge className={estadoInfo.color}>
-                          <EstadoIcon className="w-3 h-3 mr-1" />
-                          {estadoInfo.text}
-                        </Badge>
-                      </div>
-                      
-                      {/* Información del pabellón */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Tipo de limpieza:</span>
-                          <p className="font-medium">{pabellon.tipoLimpiezaRequerida}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Tiempo estimado:</span>
-                          <p className="font-medium">{pabellon.tiempoEstimado}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Responsable:</span>
-                          <p className="font-medium">{pabellon.responsableAsignado}</p>
-                        </div>
-                      </div>
-                      
-                      {/* Tiempos si está en proceso */}
-                      {pabellon.estado === 'en-proceso' && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                          <div className="flex items-center gap-2 text-yellow-800">
-                            <Clock className="w-4 h-4" />
-                            <span className="font-medium">En proceso desde las {pabellon.horaInicio}</span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Tiempos si está completado */}
-                      {pabellon.estado === 'completado' && pabellon.horaInicio && pabellon.horaFin && (
-                        <div className="bg-green-50 border border-green-200 rounded p-3">
-                          <div className="flex items-center gap-2 text-green-800">
-                            <CheckCircle className="w-4 h-4" />
-                            <span className="font-medium">
-                              Completado: {pabellon.horaInicio} - {pabellon.horaFin}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Botones de acción */}
-                      <div className="flex gap-2">
-                        {pabellon.estado === 'pendiente' && (
-                          <Button size="sm" onClick={() => iniciarLimpieza(pabellon)}>
-                            <Play className="w-4 h-4 mr-1" />
-                            Iniciar Limpieza
-                          </Button>
-                        )}
-                        
-                        {pabellon.estado === 'en-proceso' && (
-                          <Button size="sm" onClick={() => iniciarLimpieza(pabellon)}>
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Completar Limpieza
-                          </Button>
-                        )}
-                        
-                        <Button variant="outline" size="sm">
-                          <ClipboardList className="w-4 h-4 mr-1" />
-                          Ver Checklist
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {errorApi && <Alert variant="destructive" className="my-2"><AlertTitle>Error</AlertTitle><AlertDescription>{errorApi}</AlertDescription></Alert>}
+      {mensajeExito && <Alert variant="default" className="my-2 bg-green-100 border-green-300 text-green-700"><AlertTitle>Éxito</AlertTitle><AlertDescription>{mensajeExito}</AlertDescription></Alert>}
 
-        {/* Panel Lateral */}
-        <div className="space-y-6">
-          {/* Resumen */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Resumen del Día</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span>Pabellones pendientes</span>
-                <Badge variant="destructive">
-                  {pabellones.filter(p => p.estado === 'pendiente').length}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>En proceso</span>
-                <Badge variant="secondary">
-                  {pabellones.filter(p => p.estado === 'en-proceso').length}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Completados</span>
-                <Badge className="bg-green-100 text-green-800">
-                  {pabellones.filter(p => p.estado === 'completado').length}
-                </Badge>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <span>Disponibles</span>
-                <Badge className="bg-blue-100 text-blue-800">
-                  {pabellones.filter(p => p.estado === 'disponible').length}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+      {isLoading && estadosQuirofanos.length === 0 && (
+        <div className="text-center py-10"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /><p>Cargando panel de limpieza...</p></div>
+      )}
 
-          {/* Historial Reciente */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Historial Reciente</CardTitle>
-              <CardDescription>Últimas limpiezas completadas</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {historialLimpieza.slice(0, 3).map((registro) => (
-                  <div key={registro.id} className="border-l-2 border-green-500 pl-3 space-y-1">
-                    <p className="font-medium text-sm">{registro.pabellon}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {registro.tipo} - {registro.responsable}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {registro.inicio} - {registro.fin}
-                    </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {estadosQuirofanos.map((quirofano) => {
+          const estadoInfo = getEstadoVisualInfo(quirofano.estado_limpieza);
+          const EstadoIcon = estadoInfo.icon;
+          const prioridadInfo = getPrioridadInfo(quirofano.estado_limpieza);
+
+          return (
+            <Card key={quirofano.nombre_quirofano}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${prioridadInfo.color}`}></div>
+                    <CardTitle>{quirofano.nombre_quirofano}</CardTitle>
                   </div>
-                ))}
-              </div>
-              <Button variant="outline" className="w-full mt-4" size="sm">
-                Ver Historial Completo
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+                  <Badge className={estadoInfo.color}> <EstadoIcon className="w-3 h-3 mr-1" /> {estadoInfo.text} </Badge>
+                </div>
+                 {quirofano.ultima_vez_ocupado_hasta && (
+                    <CardDescription className="text-xs pt-1">
+                        Última vez ocupado: {format(parseISO(quirofano.ultima_vez_ocupado_hasta), 'Pp', { locale: es })}
+                    </CardDescription>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <span className="text-xs text-muted-foreground">Última limpieza completada:</span>
+                  <p className="text-sm font-medium">
+                    {quirofano.ultima_limpieza_realizada_dt
+                      ? format(parseISO(quirofano.ultima_limpieza_realizada_dt), 'Pp', { locale: es })
+                      : 'N/A'}
+                  </p>
+                </div>
+                {quirofano.notas_limpieza && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Notas:</span>
+                    <p className="text-sm whitespace-pre-wrap">{quirofano.notas_limpieza}</p>
+                  </div>
+                )}
+                <Button size="sm" variant="outline" onClick={() => handleAbrirDialogEdicion(quirofano)} disabled={isLoading}>
+                  <Edit3 className="w-4 h-4 mr-1" /> Actualizar Estado/Notas
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Dialog para registrar limpieza */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {!isLoading && estadosQuirofanos.length === 0 && !errorApi && (
+        <div className="text-center py-10 text-muted-foreground">No hay información de limpieza de quirófanos disponible.</div>
+      )}
+
+      <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if (!isLoading) setIsDialogOpen(isOpen); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {selectedPabellon?.estado === 'pendiente' ? 'Iniciar' : 'Completar'} Limpieza
-            </DialogTitle>
-            <DialogDescription>
-              Registrar {selectedPabellon?.estado === 'pendiente' ? 'inicio' : 'finalización'} de limpieza para {selectedPabellon?.nombre}
-            </DialogDescription>
+            <DialogTitle>Actualizar Estado de {selectedQuirofano?.nombre_quirofano}</DialogTitle>
+            <DialogDescription>Modifique el estado de limpieza y añada notas si es necesario.</DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Tipo de Limpieza</Label>
-              <Select value={registroForm.tipoLimpieza} onValueChange={(value) => setRegistroForm(prev => ({ ...prev, tipoLimpieza: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+          <div className="space-y-4 py-2">
+            {errorApi && isDialogOpen && <Alert variant="destructive" className="my-1"><AlertDescription>{errorApi}</AlertDescription></Alert>}
+            <div className="space-y-1.5">
+              <Label htmlFor="estado_limpieza_form">Nuevo Estado</Label>
+              <Select
+                value={editForm.estado_limpieza}
+                onValueChange={(value) => setEditForm(prev => ({ ...prev, estado_limpieza: value }))}
+              >
+                <SelectTrigger id="estado_limpieza_form"> <SelectValue /> </SelectTrigger>
                 <SelectContent>
-                  {tiposLimpieza.map((tipo) => (
-                    <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                  {ESTADOS_LIMPIEZA_SELECCIONABLES.map((estado) => (
+                    <SelectItem key={estado} value={estado}>{estado}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Hora Inicio</Label>
-                <Input
-                  type="time"
-                  value={registroForm.horaInicio}
-                  onChange={(e) => setRegistroForm(prev => ({ ...prev, horaInicio: e.target.value }))}
-                />
-              </div>
-              
-              {selectedPabellon?.estado === 'en-proceso' && (
-                <div className="space-y-2">
-                  <Label>Hora Fin</Label>
-                  <Input
-                    type="time"
-                    value={registroForm.horaFin}
-                    onChange={(e) => setRegistroForm(prev => ({ ...prev, horaFin: e.target.value }))}
-                  />
-                </div>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Responsable</Label>
-              <Select value={registroForm.responsable} onValueChange={(value) => setRegistroForm(prev => ({ ...prev, responsable: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {personal.map((persona) => (
-                    <SelectItem key={persona} value={persona}>{persona}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Observaciones</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="notas_limpieza_form">Notas</Label>
               <Textarea
-                value={registroForm.observaciones}
-                onChange={(e) => setRegistroForm(prev => ({ ...prev, observaciones: e.target.value }))}
-                placeholder="Observaciones o novedades durante la limpieza..."
+                id="notas_limpieza_form"
+                value={editForm.notas_limpieza}
+                onChange={(e) => setEditForm(prev => ({ ...prev, notas_limpieza: e.target.value }))}
+                placeholder="Observaciones o detalles..."
                 rows={3}
               />
             </div>
-            
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={completarLimpieza}>
-                {selectedPabellon?.estado === 'pendiente' ? 'Iniciar' : 'Completar'}
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isLoading}>Cancelar</Button>
+              <Button onClick={handleGuardarCambiosEstado} disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar Cambios
               </Button>
             </div>
           </div>
