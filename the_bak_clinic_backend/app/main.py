@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import usuarios, cirugias, pacientes, limpieza
+from app.routers import usuarios, cirugias, pacientes, limpieza, auth, reportes, notificaciones # Importar notificaciones
 from app.database import get_connection
 
-app = FastAPI()
+app = FastAPI(title="The BAK Clinic API", version="0.1.0")
 
 # Middleware CORS
 app.add_middleware(
@@ -15,10 +15,13 @@ app.add_middleware(
 )
 
 # Rutas principales
-app.include_router(usuarios.router, prefix="/usuarios")
-app.include_router(cirugias.router, prefix="/cirugias")
-app.include_router(pacientes.router, prefix="/pacientes")
-app.include_router(limpieza.router, prefix="/limpieza")
+app.include_router(usuarios.router, prefix="/usuarios", tags=["usuarios"])
+app.include_router(cirugias.router, prefix="/cirugias", tags=["cirugias"])
+app.include_router(pacientes.router, prefix="/pacientes", tags=["pacientes"])
+app.include_router(limpieza.router, prefix="/limpieza", tags=["limpieza"])
+app.include_router(auth.router, prefix="/auth", tags=["autenticación"])
+app.include_router(reportes.router, prefix="/reportes", tags=["reportes"])
+app.include_router(notificaciones.router, prefix="/notificaciones", tags=["notificaciones"])
 
 
 @app.get("/")

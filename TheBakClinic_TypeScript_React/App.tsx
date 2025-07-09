@@ -32,13 +32,16 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [screenData, setScreenData] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // const [usuario, setUsuario] = useState<any>(null); // Opcional: para guardar datos del usuario
 
-  const handleLogin = () => {
+  const handleLoginSuccess = (/*data?: any*/) => { // data podría venir de la API con info del usuario
     setIsLoggedIn(true);
+    // if (data && data.usuario) setUsuario(data.usuario); // Opcional
     setCurrentScreen("dashboard");
   };
 
   const handleLogout = () => {
+    // setUsuario(null); // Opcional
     setIsLoggedIn(false);
     setCurrentScreen("login");
     setSidebarOpen(false);
@@ -89,7 +92,7 @@ export default function App() {
   };
 
   if (!isLoggedIn) {
-    return <Login onLogin={handleLogin} />;
+    return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
   const renderCurrentScreen = () => {
