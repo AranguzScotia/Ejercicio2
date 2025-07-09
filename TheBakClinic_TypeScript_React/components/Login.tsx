@@ -5,9 +5,9 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { Loader2, Mail } from 'lucide-react'; // Cambiar icono a Mail
-import clinicLogo from 'figma:asset/edbed43c3db39494f85e7ae6f92ba61a21ce649c.png';
-// Actualizar importación para usar authService
+import { Loader2, Mail } from 'lucide-react';
+// clinicLogo ahora se referencia directamente desde /public
+// import clinicLogo from 'figma:asset/edbed43c3db39494f85e7ae6f92ba61a21ce649c.png';
 import { iniciarSesion, LoginPayload } from '../services/authService';
 
 interface LoginProps {
@@ -53,7 +53,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-6">
             <img 
-              src={clinicLogo} 
+              src="/img/clinica_logo.png" // Ruta actualizada a /public/img/
               alt="The BAK Clinic" 
               className="h-20 w-auto object-contain"
             />
